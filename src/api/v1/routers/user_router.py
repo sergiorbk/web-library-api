@@ -4,6 +4,7 @@ from typing import List
 import uuid
 
 from src.container import Container
+from src.core.security import get_current_user, require_roles
 from src.schemas.user import RegisterUserRequest, UserSchema, UserUpdateFullRequest, UserUpdatePartlyRequest
 from src.services.user_service import UserService
 
@@ -15,27 +16,42 @@ async def register_user(
     request: RegisterUserRequest,
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
-    return user_service.register_user(request)
-    # try:
-    #     return await user_service.register_user(request)
-    # except Exception as e:
-    #     raise HTTPException(
-    #         status_code=status.HTTP_400_BAD_REQUEST,
-    #         detail=f"User registration failed"
-    #     )
+    try:
+        return user_service.register_user(request)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User registration failed: {e}"
+        )
+
+@router.post("/create", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+@inject
+async def create_user(
+        request: RegisterUserRequest,
+        user = Depends(require_roles(["admin"])),
+        user_service: UserService = Depends(Provide[Container.user_service])
+):
+    try:
+        return user_service.register_user(request)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"User creation failed: {e}"
+        )
 
 
 @router.get("/", response_model=List[UserSchema])
 @inject
 async def get_all_users(
-    user_service: UserService = Depends(Provide[Container.user_service])
+    user_service: UserService = Depends(Provide[Container.user_service]),
+    user = Depends(require_roles(["admin"])),
 ):
     try:
-        return await user_service.get_all_users()
+        return user_service.get_all_users()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch users"
+            detail=f"Failed to fetch users: {e}"
         )
 
 
@@ -43,10 +59,11 @@ async def get_all_users(
 @inject
 async def get_user_by_id(
     user_id: uuid.UUID,
+    user = Depends(require_roles(["admin"])),
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     try:
-        user = await user_service.get_user_by_id(user_id)
+        user = user_service.get_user_by_id(user_id)
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -58,7 +75,7 @@ async def get_user_by_id(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch user"
+            detail=f"Failed to fetch user: {e}"
         )
 
 
@@ -67,10 +84,11 @@ async def get_user_by_id(
 async def update_user_full(
     user_id: uuid.UUID,
     request: UserUpdateFullRequest,
+    user = Depends(get_current_user),
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     try:
-        updated_user = await user_service.update_user_full(user_id, request)
+        updated_user = user_service.update_user_full(user_id, request)
         if not updated_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -82,7 +100,7 @@ async def update_user_full(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update user"
+            detail=f"Failed to update user: {e}"
         )
 
 
@@ -91,10 +109,11 @@ async def update_user_full(
 async def update_user_partial(
     user_id: uuid.UUID,
     request: UserUpdatePartlyRequest,
+    user = Depends(get_current_user),
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     try:
-        updated_user = await user_service.update_user_partial(user_id, request)
+        updated_user = user_service.update_user_partial(user_id, request)
         if not updated_user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -106,7 +125,7 @@ async def update_user_partial(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update user"
+            detail=f"Failed to update user: {e}"
         )
 
 
@@ -114,10 +133,11 @@ async def update_user_partial(
 @inject
 async def delete_user(
     user_id: uuid.UUID,
+    user = Depends(require_roles(["admin"])),
     user_service: UserService = Depends(Provide[Container.user_service])
 ):
     try:
-        success = await user_service.delete_user(user_id)
+        success = user_service.delete_user(user_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -128,5 +148,5 @@ async def delete_user(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete user"
+            detail=f"Failed to delete user: {e}"
         )

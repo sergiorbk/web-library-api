@@ -1,9 +1,9 @@
+from src.core.security import create_access_token
 from src.db.repositories.user_repository import UserRepository
 from src.exceptions.auth_exceptions import InvalidPasswordException
 from src.exceptions.user_exceptions import UserNotFoundException
 from src.schemas.auth import LoginRequest, LoginResponse
-from src.utils.jwt_utils import create_access_token
-from src.utils.password_hasher import validate_password
+from src.core.password_hasher import validate_password
 
 
 class AuthService:
@@ -27,7 +27,8 @@ class AuthService:
         # issue token if password correct
         token = create_access_token({
             "sub": str(user.user_id),
-            "roles": user.roles
+            "email": str(user.email),
+            "roles": [str(role) for role in user.roles],
         })
 
         return LoginResponse(token=token)

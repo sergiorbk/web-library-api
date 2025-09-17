@@ -11,4 +11,4 @@ class Book(Base):
     book_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     author: Mapped[str] = mapped_column(String(50), nullable=False)
-    isbn: Mapped[str] = mapped_column(String(13), nullable=False)
+    isbn: Mapped[str] = mapped_column(String(18), nullable=False)

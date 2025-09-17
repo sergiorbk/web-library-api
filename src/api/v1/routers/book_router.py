@@ -4,6 +4,7 @@ from typing import List
 import uuid
 
 from src.container import Container
+from src.core.security import get_current_user, require_roles
 from src.schemas.book import BookSchema, CreateBookRequest, UpdateBookRequest
 from src.services.book_service import BookService
 
@@ -13,14 +14,15 @@ router = APIRouter(prefix="/api/v1/books", tags=["books", "v1"])
 @router.get("/", response_model=List[BookSchema])
 @inject
 async def get_all_books(
-    book_service: BookService = Depends(Provide[Container.book_service])
+    book_service: BookService = Depends(Provide[Container.book_service]),
+    user = Depends(get_current_user),
 ):
     try:
-        return await book_service.get_all_books()
+        return book_service.get_all_books()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch books"
+            detail=f"Failed to fetch books: {e}"
         )
 
 
@@ -28,10 +30,11 @@ async def get_all_books(
 @inject
 async def get_book_by_id(
     book_id: uuid.UUID,
+    user = Depends(get_current_user),
     book_service: BookService = Depends(Provide[Container.book_service])
 ):
     try:
-        book = await book_service.get_book_by_id(book_id)
+        book = book_service.get_book_by_id(book_id)
         if not book:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -43,7 +46,7 @@ async def get_book_by_id(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch book"
+            detail=f"Failed to fetch book: {e}"
         )
 
 
@@ -51,14 +54,15 @@ async def get_book_by_id(
 @inject
 async def create_book(
     request: CreateBookRequest,
+    user = Depends(require_roles(["admin"])),
     book_service: BookService = Depends(Provide[Container.book_service])
 ):
     try:
-        return await book_service.create_book(request)
+        return book_service.create_book(request)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Failed to create book"
+            detail="Failed to create book: {}".format(e)
         )
 
 
@@ -70,7 +74,7 @@ async def update_book(
     book_service: BookService = Depends(Provide[Container.book_service])
 ):
     try:
-        updated_book = await book_service.update_book(book_id, request)
+        updated_book = book_service.update_book(book_id, request)
         if not updated_book:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -82,7 +86,7 @@ async def update_book(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update book"
+            detail=f"Failed to update book: {e}"
         )
 
 
@@ -93,7 +97,7 @@ async def delete_book(
     book_service: BookService = Depends(Provide[Container.book_service])
 ):
     try:
-        success = await book_service.delete_book(book_id)
+        success = book_service.delete_book(book_id)
         if not success:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -104,5 +108,5 @@ async def delete_book(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to delete book"
+            detail=f"Failed to delete book: {e}"
         )
