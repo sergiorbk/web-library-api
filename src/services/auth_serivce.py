@@ -26,7 +26,8 @@ class AuthService:
 
         # issue token if password correct
         token = create_access_token({
-            "sub": user.user_id
+            "sub": str(user.user_id),
+            "roles": user.roles
         })
 
         return LoginResponse(token=token)

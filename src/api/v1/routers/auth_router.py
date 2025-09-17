@@ -15,10 +15,11 @@ async def login(
         request: LoginRequest,
         auth_service: AuthService = Depends(Provide[Container.auth_service]),
 ):
-    try:
-        return await auth_service.login(request)
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid credentials"
-        )
+    return auth_service.login(request)
+    # try:
+    #     return await auth_service.login(request)
+    # except Exception as e:
+    #     raise HTTPException(
+    #         status_code=status.HTTP_401_UNAUTHORIZED,
+    #         detail="Invalid credentials"
+    #     )
